@@ -106,6 +106,18 @@ import java.util.Random;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import android.app.Service;
+import android.content.ComponentName;
+import android.content.ServiceConnection;
+import android.os.IBinder;
+import android.os.Message;
+import android.os.Messenger;
+import android.os.RemoteException;
+
+import static com.mraethel.PermissionLogger.PermissionLoggerKt.MSG_LOG_GRANT_PERMISSION_ACTIVITY_BUTTON_ACTIONS;
+import com.mraethel.PermissionLogger.PermissionLogger;
+import com.mraethel.PermissionLogger.GrantPermissionActivityButtonActionsLog;
+
 /**
  * An activity which displays runtime permission prompts on behalf of an app.
  */
@@ -1131,6 +1143,9 @@ public class GrantPermissionsActivity extends SettingsActivity
 
         mViewModel.logClickedButtons(permissionGroupName, selectedPrecision, clickedButton,
                 presentedButtons, isPermissionRationaleVisible());
+
+        log(permissionGroupName, selectedPrecision, clickedButton,
+                presentedButtons, isPermissionRationaleVisible());
     }
 
     private int getButtonState() {
@@ -1212,4 +1227,59 @@ public class GrantPermissionsActivity extends SettingsActivity
                 .filter(perm -> !AppPermissionUtils.shouldSkipPermissionRequestDialog(ps, perm))
                 .collect(Collectors.toList());
     }
+
+    /**
+     * PermissionLogger
+     */
+    Messenger mService = null;
+    boolean bound;
+
+    private ServiceConnection mConnection = new ServiceConnection() {
+      public void onServiceConnected(ComponentName className, IBinder service) {
+        mService = new Messenger(service);
+        bound = true;
+      }
+
+      public void onServiceDisconnected(ComponentName className) {
+        mService = null;
+        bound = false;
+      }
+    };
+
+    public void log(
+        String groupName,
+        int selectedPrecision,
+        int clickedButtons,
+        int presentedButtons,
+        Boolean isPermissionRationaleShown) { if (!bound) return;
+      GrantPermissionActivityButtonActionsLog grantPermissionActivityButtonActionsLog = new GrantPermissionActivityButtonActionsLog(
+          groupName,
+          presentedButtons,
+          clickedButtons,
+          selectedPrecision,
+          isPermissionRationaleShown);
+      Message msg = Message.obtain(null,
+          MSG_LOG_GRANT_PERMISSION_ACTIVITY_BUTTON_ACTIONS,
+          grantPermissionActivityButtonActionsLog);
+
+      try {
+        mService.send(msg);
+      } catch (RemoteException e) {
+        e.printStackTrace();
+      }
+    }
+
+    @Override
+    protected void onStart() { super.onStart();
+      bindService(new Intent(this, PermissionLogger.class), mConnection, Context.BIND_AUTO_CREATE);
+    }
+
+    @Override
+    protected void onStop() { super.onStop();
+      if (bound) {
+        unbindService(mConnection);
+        bound = false;
+      }
+    }
+
 }
