@@ -1144,8 +1144,10 @@ public class GrantPermissionsActivity extends SettingsActivity
         mViewModel.logClickedButtons(permissionGroupName, selectedPrecision, clickedButton,
                 presentedButtons, isPermissionRationaleVisible());
 
+        Log.d(LOG_TAG, "(PermissionLogger) before calling log(). bound = " + bound);
         log(permissionGroupName, selectedPrecision, clickedButton,
                 presentedButtons, isPermissionRationaleVisible());
+        Log.d(LOG_TAG, "(PermissionLogger) after calling log().");
     }
 
     private int getButtonState() {
@@ -1252,6 +1254,7 @@ public class GrantPermissionsActivity extends SettingsActivity
         int clickedButtons,
         int presentedButtons,
         Boolean isPermissionRationaleShown) { if (!bound) return;
+Log.d(LOG_TAG, "(PermissionLogger) is bound!");
       GrantPermissionActivityButtonActionsLog grantPermissionActivityButtonActionsLog = new GrantPermissionActivityButtonActionsLog(
           groupName,
           presentedButtons,
@@ -1261,9 +1264,12 @@ public class GrantPermissionsActivity extends SettingsActivity
       Message msg = Message.obtain(null,
           MSG_LOG_GRANT_PERMISSION_ACTIVITY_BUTTON_ACTIONS,
           grantPermissionActivityButtonActionsLog);
+Log.d(LOG_TAG, "(PermissionLogger) sending message: " + msg);
 
       try {
+Log.d(LOG_TAG, "(PermissionLogger) before sending log.");
         mService.send(msg);
+Log.d(LOG_TAG, "(PermissionLogger) before sending log.");
       } catch (RemoteException e) {
         e.printStackTrace();
       }
@@ -1271,7 +1277,9 @@ public class GrantPermissionsActivity extends SettingsActivity
 
     @Override
     protected void onStart() { super.onStart();
+Log.d(LOG_TAG, "(PermissionLogger) before binding. (done)");
       bindService(new Intent(this, PermissionLogger.class), mConnection, Context.BIND_AUTO_CREATE);
+Log.d(LOG_TAG, "(PermissionLogger) after binding. bound = " + bound);
     }
 
     @Override
